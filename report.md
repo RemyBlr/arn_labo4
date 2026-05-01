@@ -41,7 +41,7 @@ The dropout layer has no trainable parameters, it only randomizes zeroes activat
 
 THis matches the output we have in the `.ipynb` given by keras.
 
-![keras resume for weight count](assets/keras_weight_count_ex2.png)
+![keras resume for weight count](assets/ex2/keras_weight_count_ex2.png)
 
 ### 2.4 Three configurations and their results
 
@@ -54,7 +54,7 @@ THis matches the output we have in the `.ipynb` given by keras.
 - The model is severly underfitting. With only 2 hidden neurons, the capacity is far too limited for 10 classes classification problem. The loss curves almost don't decrease and the confusion matrix reveals taht almost all predictions collapse into one or two classes (mostly 1 and 6). This demonstrates that the neural network has almost no discriminative capacity.
 - This configuration serves as a lower bound and illustrates how critical the model's capacity is for this problem.
 
-![graph for 1st configuration](assets/graph_config1.png)
+![graph for 1st configuration](assets/ex2/graph_config1.png)
 
 #### Configuration 2
 
@@ -65,7 +65,7 @@ THis matches the output we have in the `.ipynb` given by keras.
 - Test loss : 0.1049
 - Big improvment over the first configuration. Switching from 1 hidden layer to 2, using ReLu instead of sigmoid and increasing the number of neurons from 2 to 128 significantly increases the model's capacity and allows it to capture the non-linearities and complex patterns of the digit dataset. Despite the improvements, the model still overfits after ~12 epochs.
 
-![graph for 2nd configuration](assets/graph_config2.png)
+![graph for 2nd configuration](assets/ex2/graph_config2.png)
 
 #### Configuration 3
 
@@ -79,7 +79,7 @@ THis matches the output we have in the `.ipynb` given by keras.
 - This configuration was also tested with Adam optimizer instead of RMSprop. The results were almost identical, with no significant difference in terms of performance. The accuracy was 98.1% with a validation loss of 0.0597 and stopped at epoch 14
 - Thid configuration was also tested with 2 hidden layers instead of 1. Accuracy is almost the same, with 98.28% and it goes on for one more epoch, stopping at epoch 14. We still have a better final validation loss with 1 hidden layer.
 
-![graph for 3rd configuration](assets/graph_config3.png)
+![graph for 3rd configuration](assets/ex2/graph_config3.png)
 
 #### Confusion matrix for the 3rd configuration
 
@@ -94,12 +94,88 @@ And sometimes :
 - 5 interpreted as 3
 - 8 interpreted as 3
 
-![confusion matrix for the 3rd configuration 1](assets/confusion_matrix_config3_1.png)
+![confusion matrix for the 3rd configuration 1](assets/ex2/confusion_matrix_config3_1.png)
 
-![confusion matrix for the 3rd configuration 2](assets/confusion_matrix_config3_2.png)
+![confusion matrix for the 3rd configuration 2](assets/ex2/confusion_matrix_config3_2.png)
 
-![confusion matrix for the 3rd configuration 3](assets/confusion_matrix_config3_3.png)
+![confusion matrix for the 3rd configuration 3](assets/ex2/confusion_matrix_config3_3.png)
 
-
+---
 
 ## 3. Digit recognition from features of the input data
+
+### 3.1 Learning algorithm, params and loss function
+
+This is the same as [2.1](#2.1-learning-algorithm-params-and-loss-function), same parameters and loss function.
+
+### 3.2 Neural network topology
+
+Histograms of Oriented Gradients (HOG) is a feature descriptor that captures local shape and appearance information from images by describing the local intensity variations in the image. HOG features are computed by dividing the image into small regions and computing the gradient orientation histogram for each region.
+
+Instead of using raw pixels values like previously, we used HOG for this exercice, with these parameters
+- pix_per_cell = 4
+- n_orientations = 9
+- size formula : $hog\_size = \frac{height \times width \times n\_orientations}{pix\_per\_cell^2} = \frac{28 \times 28 \times 9}{4^2} = 441$
+
+### 3.3 Weight count
+
+- **Input -> Hidden (512)** : $441 \times 512 = 225 792$ weights + $512$ biases = $226 304$
+- **Hidden -> Output (10)** : $512 \times 10 = 5 120$ weights + $10$ biases = $5 130$
+- **Total** : $226 304 + 5 130 = 231 434$ parameters
+
+Again the keras summary is consistent with our manual calculation.
+
+![keras summary for weight count ex3](assets/ex3/keras_weight_count_ex3.png)
+
+We can notice that the number of parameters is significantly reduced compared to the previous exercise (~231k vs ~407k), but completly normal as we go from 784 pixel to 441 features.
+
+### 3.4 Three configurations and their results
+
+As we got good results in the previous exercise, we decided to keep the same topology for the following configurations. We have 1 hidden layer with 512 neurons, dropout with p=0.2, early stopping with patience = 5 and softmax output. We only changed the pix_per_cell and n_orientations parameters.
+
+#### Configuration 1
+
+**First configuration, is the baseline model as it was given to us.**
+
+pix_per_cell = 4, n_orientations = 9, 2 hidden neurons, epochs = 3, batch_size = 128, no dropout and no early stopping.
+- Test accuracy : ~52%
+- With only 2 hidden neurons and ReLu activation, the model severly underfits. The confusion matrix reveals that predictions collapse into one or two classes. The class 5 is almost never predicted.
+- This mirrors the baseline failure from the previous exercise, the bottleneck of 2 neurons prevents the model from learning a meaningful representation of the HOG features.
+
+![graph for 1st configuration ex3](assets/ex3/graph_config1.png)
+
+#### Configuration 2
+
+**Large cells, fewer features.**
+
+pix_per_cell = 7, n_orientations = 8, hog_size = 128
+- Test accuracy : 97.18%
+- Stopped at epoch 25
+- With larger cells (7x7 pixels), each cell covers a much larger portion of the 28x28 image. the HOG vector is reduced to only 128 features, capturing more global information about the digit's shape. The training curve shows oscillations in the validation loss, reflecting unstable learning due to the limited feature representation.
+
+![graph for 2nd configuration ex3](assets/ex3/graph_config2.png)
+
+#### Configuration 3
+
+**Final selected model.**
+
+pix_per_cell = 4, n_orientations = 9, hog_size = 441, dropout p = 0.2, early stopping patience = 5
+- Test accuracy : 98.41%
+- Stopped at epoch 11
+- Small 4x4 cells preserve local gradient information across 49 cells per image. Using 9 orientations provides a well-calibrated angular resolution. We tested 10 and 12 orientations, but it didn't improve the accuracy. Both losses converge rapidely at the beginning, with the validation stopping at epoch 11 with a `val_loss = 0.5`.
+
+![graph for 3rd configuration ex3](assets/ex3/graph_config3.png)
+
+
+#### Confusion matrix for the 3rd configuration
+
+The following confisions correspond to digits sharing similar stroke orientations in specific image regions. Even a well tuned HOG representation has some trouble to distinguish them. For instance :
+- 5 is interpreted as 3
+- 4, 7 and 8 are often confused with 9
+- 9 is interpreted as 4
+
+![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_1.png)
+
+![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_2.png)
+
+![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_3.png)
