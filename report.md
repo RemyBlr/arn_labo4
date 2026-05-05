@@ -19,8 +19,8 @@ output: pdf_document
 This report presents experiments on digit classification using the MNIST dataset, structured around four approaches.
 </br> Exercice 2 trains a Multi Layer Perceptron directly on raw pixel values (748 inputs).
 </br> Exercice 3 replaces raw pixels with Histogram of Oriented Gradients features, a hand crafted descriptor that captures local edge orientations.
-</br> Exercice 4 introduces Convolutional Neural Networks, wich learn spatial features automatically.
-</br> Finally, exercice 5 applies a CNN to a more challenging medical imaging task to classify X-rays of chests for pneumonia detecion.
+</br> Exercice 4 introduces Convolutional Neural Networks, which learn spatial features automatically.
+</br> Finally, exercice 5 applies a CNN to a more challenging medical imaging task to classify X-rays of chests for pneumonia detection.
 </br> For each exercice, multiple configurations are tested and compared in terms of accuracy, training dynamics and generalization ability.
 
 ## 2. Digit recognition from raw data
