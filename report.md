@@ -6,6 +6,15 @@ geometry: margin=2cm
 output: pdf_document
 ---
 
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });
+</script>
+
+# Labo 4 - ARN
+**Authors:** Bleuer Rémy, Duruz Florian  
+**Date:** 06.05.2026
+
 ## 2. Digit recognition from raw data
 
 ### 2.1 Learning algorithm, params and loss function
@@ -16,7 +25,9 @@ The learning algorithm used is `RMSprop`. It adapts the learning rate for each p
 - epsilon = 1e-7
 
 The loss function is `categorical_crossentropy`, which is used for multi-class classification.
+
 $$L = -\frac{1}{N} \sum_{i=1}^{N} \sum_{c=1}^{C} y_{i,c} \log(\hat{y}_{i,c})$$
+
 - N is the number of samples
 - C = 10 is the number of digit classes
 - $y_{i,c} \in \{0,1\}$ is the one-hot encoding of the true class
@@ -186,8 +197,8 @@ The goal of this experiment is to train a convolutional neural network using the
 
 Initial Situation :
 
-<img src="assets/ex4/InitSummary.PNG" width="400"/>
-<img src="assets/ex4/InitAccuracy.PNG" width="400"/>
+<img src="assets/ex4/InitSummary.PNG" width="300"/>
+<img src="assets/ex4/InitAccuracy.PNG" width="300"/>
 
 ---
 
@@ -423,15 +434,15 @@ l5 = Dense(n_classes, activation='softmax', name='l5')(l4_drop)
 
 **Convolutional layers:**
 
-$$l1 : (5 \times 5 \times 1) \times 8 + 8 = 208 \text{ parameters}$$
+$$l1 : (5 \times 5 \times 1) \times 8 + 8 = 208 \text{ params}$$
 
-$$l2 : (5 \times 5 \times 8) \times 16 + 16 = 3216 \text{ parameters}$$
+$$l2 : (5 \times 5 \times 8) \times 16 + 16 = 3216 \text{ params}$$
 
 **Dense layers:**
 
-$$l4 : 784 \times 128 + 128 = 100480 \text{ parameters}$$
+$$l4 : 784 \times 128 + 128 = 100480 \text{ params}$$
 
-$$l5 : 128 \times 10 + 10 = 1290 \text{ parameters}$$
+$$l5 : 128 \times 10 + 10 = 1290 \text{ params}$$
 
 **Total: 208 + 3216 + 100480 + 1290 = 105,194 parameters**
 
@@ -595,7 +606,7 @@ cnn_output = layers.Dense(1, activation='sigmoid')(l7)
 | l7 (Dense) | (None, 16) | 528 |
 | dense (Dense) | (None, 1) | 17 |
 
-<img src="assets/ex5/plot_model.png" width="400"/>
+<img src="assets/ex5/plot_model.png" width="200"/>
 
 The architecture follows a progressive reduction of spatial dimensions (128->64->32->16->8->4) while increasing the number of filters (8->16->32->64->128), allowing the network to learn increasingly abstract features. The Flatten layer converts the final 4X4X128 volume into a 2048-element vector, which is then compressed through the Dense layers (32->16->1) down to a single binary output.
 
