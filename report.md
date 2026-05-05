@@ -15,6 +15,14 @@ output: pdf_document
 **Authors:** Bleuer Rémy, Duruz Florian  
 **Date:** 06.05.2026
 
+## 1. Introduction
+This report presents experiments on digit classification using the MNIST dataset, structured around four approaches.
+</br> Exercice 2 trains a Multi Layer Perceptron directly on raw pixel values (748 inputs).
+</br> Exercice 3 replaces raw pixels with Histogram of Oriented Gradients features, a hand crafted descriptor that captures local edge orientations.
+</br> Exercice 4 introduces Convolutional Neural Networks, wich learn spatial features automatically.
+</br> Finally, exercice 5 applies a CNN to a more challenging medical imaging task to classify X-rays of chests for pneumonia detecion.
+</br> For each exercice, multiple configurations are tested and compared in terms of accuracy, training dynamics and generalization ability.
+
 ## 2. Digit recognition from raw data
 
 ### 2.1 Learning algorithm, params and loss function
@@ -52,7 +60,7 @@ The dropout layer has no trainable parameters, it only randomizes zeroes activat
 
 THis matches the output we have in the `.ipynb` given by keras.
 
-![keras resume for weight count](assets/ex2/keras_weight_count_ex2.png)
+<img src="assets/ex2/keras_weight_count_ex2.PNG" width="400"/>
 
 ### 2.4 Three configurations and their results
 
@@ -65,7 +73,8 @@ THis matches the output we have in the `.ipynb` given by keras.
 - The model is severly underfitting. With only 2 hidden neurons, the capacity is far too limited for 10 classes classification problem. The loss curves almost don't decrease and the confusion matrix reveals taht almost all predictions collapse into one or two classes (mostly 1 and 6). This demonstrates that the neural network has almost no discriminative capacity.
 - This configuration serves as a lower bound and illustrates how critical the model's capacity is for this problem.
 
-![graph for 1st configuration](assets/ex2/graph_config1.png)
+<img src="assets/ex2/graph_config1.PNG" width="400"/>
+
 
 #### Configuration 2
 
@@ -76,7 +85,8 @@ THis matches the output we have in the `.ipynb` given by keras.
 - Test loss : 0.1049
 - Big improvment over the first configuration. Switching from 1 hidden layer to 2, using ReLu instead of sigmoid and increasing the number of neurons from 2 to 128 significantly increases the model's capacity and allows it to capture the non-linearities and complex patterns of the digit dataset. Despite the improvements, the model still overfits after ~12 epochs.
 
-![graph for 2nd configuration](assets/ex2/graph_config2.png)
+<img src="assets/ex2/graph_config2.PNG" width="400"/>
+
 
 #### Configuration 3
 
@@ -90,7 +100,7 @@ THis matches the output we have in the `.ipynb` given by keras.
 - This configuration was also tested with Adam optimizer instead of RMSprop. The results were almost identical, with no significant difference in terms of performance. The accuracy was 98.1% with a validation loss of 0.0597 and stopped at epoch 14
 - Thid configuration was also tested with 2 hidden layers instead of 1. Accuracy is almost the same, with 98.28% and it goes on for one more epoch, stopping at epoch 14. We still have a better final validation loss with 1 hidden layer.
 
-![graph for 3rd configuration](assets/ex2/graph_config3.png)
+<img src="assets/ex2/graph_config3.PNG" width="400"/>
 
 #### Confusion matrix for the 3rd configuration
 
@@ -105,11 +115,9 @@ And sometimes :
 - 5 interpreted as 3
 - 8 interpreted as 3
 
-![confusion matrix for the 3rd configuration 1](assets/ex2/confusion_matrix_config3_1.png)
-
-![confusion matrix for the 3rd configuration 2](assets/ex2/confusion_matrix_config3_2.png)
-
-![confusion matrix for the 3rd configuration 3](assets/ex2/confusion_matrix_config3_3.png)
+<img src="assets/ex2/confusion_matrix_config3_1.png" width="400"/>
+<img src="assets/ex2/confusion_matrix_config3_2.png" width="400"/>
+<img src="assets/ex2/confusion_matrix_config3_3.png" width="400"/>
 
 ---
 
@@ -136,7 +144,7 @@ Instead of using raw pixels values like previously, we used HOG for this exercic
 
 Again the keras summary is consistent with our manual calculation.
 
-![keras summary for weight count ex3](assets/ex3/keras_weight_count_ex3.png)
+<img src="assets/ex3/keras_weight_count_ex3.PNG" width="400"/>
 
 We can notice that the number of parameters is significantly reduced compared to the previous exercise (~231k vs ~407k), but completly normal as we go from 784 pixel to 441 features.
 
@@ -153,7 +161,7 @@ pix_per_cell = 4, n_orientations = 9, 2 hidden neurons, epochs = 3, batch_size =
 - With only 2 hidden neurons and ReLu activation, the model severly underfits. The confusion matrix reveals that predictions collapse into one or two classes. The class 5 is almost never predicted.
 - This mirrors the baseline failure from the previous exercise, the bottleneck of 2 neurons prevents the model from learning a meaningful representation of the HOG features.
 
-![graph for 1st configuration ex3](assets/ex3/graph_config1.png)
+<img src="assets/ex3/graph_config1.PNG" width="400"/>
 
 #### Configuration 2
 
@@ -164,7 +172,7 @@ pix_per_cell = 7, n_orientations = 8, hog_size = 128
 - Stopped at epoch 25
 - With larger cells (7x7 pixels), each cell covers a much larger portion of the 28x28 image. the HOG vector is reduced to only 128 features, capturing more global information about the digit's shape. The training curve shows oscillations in the validation loss, reflecting unstable learning due to the limited feature representation.
 
-![graph for 2nd configuration ex3](assets/ex3/graph_config2.png)
+<img src="assets/ex3/graph_config2.PNG" width="400"/>
 
 #### Configuration 3
 
@@ -175,7 +183,7 @@ pix_per_cell = 4, n_orientations = 9, hog_size = 441, dropout p = 0.2, early sto
 - Stopped at epoch 11
 - Small 4x4 cells preserve local gradient information across 49 cells per image. Using 9 orientations provides a well-calibrated angular resolution. We tested 10 and 12 orientations, but it didn't improve the accuracy. Both losses converge rapidely at the beginning, with the validation stopping at epoch 11 with a `val_loss = 0.5`.
 
-![graph for 3rd configuration ex3](assets/ex3/graph_config3.png)
+<img src="assets/ex3/graph_config3.PNG" width="400"/>
 
 
 #### Confusion matrix for the 3rd configuration
@@ -185,11 +193,9 @@ The following confisions correspond to digits sharing similar stroke orientation
 - 4, 7 and 8 are often confused with 9
 - 9 is interpreted as 4
 
-![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_1.png)
-
-![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_2.png)
-
-![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_3.png)
+<img src="assets/ex3/confusion_matrix_1.png" width="400"/>
+<img src="assets/ex3/confusion_matrix_2.png" width="400"/>
+<img src="assets/ex3/confusion_matrix_3.png" width="400"/>
 
 # 4. Convolutional Neural Network : Digit Recognition (MNIST)
 
