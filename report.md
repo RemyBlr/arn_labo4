@@ -503,3 +503,162 @@ The relationship between the depth of a CNN and the number of weights it contain
 - **Total: 20,534 parameters**
 
 Despite having more layers, config 3 (CNN) has **5X fewer weights** than the shallow MLP, while achieving 98.66% accuracy vs what a comparable MLP would achieve. This is because dense layers connect every input to every neuron, generating a very large number of parameters, whereas convolutional layers only connect each filter to a local region of the input image, drastically reducing the parameter count despite the added depth.
+
+# 5. Chest X-ray Pneumonia Detection
+
+The goal of this experiment is to train a convolutional neural network to classify chest X-ray images into two categories: normal and pneumonia. The dataset contains 5216 images for training, 16 images for validation and 624 images for testing.
+
+---
+
+## 5.1 Dataset
+
+The dataset consists of grayscale chest X-ray images resized to 128X128 pixels, split into three sets:
+
+| Set | Images |
+|-----|--------|
+| Training | 5216 |
+| Validation | 16 |
+| Test | 624 |
+
+<img src="assets/ex5/dataset_samples.PNG" width="400"/>
+
+The dataset is significantly imbalanced, with more pneumonia cases than normal cases in the training set. To address this, class weights were computed and applied during training:
+
+| Class | Weight |
+|-------|--------|
+| Normal (0) | 1.9448 |
+| Pneumonia (1) | 0.6730 |
+
+The higher weight for the Normal class forces the model to pay more attention to the minority class during training, preventing it from simply predicting pneumonia for every sample.
+
+---
+
+## 5.2 Model Architecture
+
+The CNN model consists of 5 convolutional layers each followed by a max pooling layer, and 2 fully connected dense layers before the final output. The convolutional layers progressively extract spatial hierarchies of features from the images, while the dense layers classify these features into the two categories.
+
+```python
+input = layers.Input((IMG_HEIGHT, IMG_WIDTH, 1))
+
+l1 = layers.Conv2D(8, (3, 3), padding='same', activation='relu', name='l1')(input)
+l1_mp = layers.MaxPooling2D((2, 2), name='l1_mp')(l1)
+
+l2 = layers.Conv2D(16, (3, 3), padding='same', activation='relu', name='l2')(l1_mp)
+l2_mp = layers.MaxPooling2D((2, 2), name='l2_mp')(l2)
+
+l3 = layers.Conv2D(32, (3, 3), padding='same', activation='relu', name='l3')(l2_mp)
+l3_mp = layers.MaxPooling2D((2, 2), name='l3_mp')(l3)
+
+l4 = layers.Conv2D(64, (3, 3), padding='same', activation='relu', name='l4')(l3_mp)
+l4_mp = layers.MaxPooling2D((2, 2), name='l4_mp')(l4)
+
+l5 = layers.Conv2D(128, (3, 3), padding='same', activation='relu', name='l5')(l4_mp)
+l5_mp = layers.MaxPooling2D((2, 2), name='l5_mp')(l5)
+
+flat = layers.Flatten(name='flat')(l5_mp)
+
+l6 = layers.Dense(32, activation='relu', name='l6')(flat)
+l7 = layers.Dense(16, activation='relu', name='l7')(l6)
+
+cnn_output = layers.Dense(1, activation='sigmoid')(l7)
+```
+
+**Layer-by-layer summary:**
+
+| Layer | Output Shape | Param # |
+|-------|-------------|---------|
+| input (InputLayer) | (None, 128, 128, 1) | 0 |
+| l1 (Conv2D) | (None, 128, 128, 8) | 80 |
+| l1_mp (MaxPooling2D) | (None, 64, 64, 8) | 0 |
+| l2 (Conv2D) | (None, 64, 64, 16) | 1168 |
+| l2_mp (MaxPooling2D) | (None, 32, 32, 16) | 0 |
+| l3 (Conv2D) | (None, 32, 32, 32) | 4640 |
+| l3_mp (MaxPooling2D) | (None, 16, 16, 32) | 0 |
+| l4 (Conv2D) | (None, 16, 16, 64) | 18496 |
+| l4_mp (MaxPooling2D) | (None, 8, 8, 64) | 0 |
+| l5 (Conv2D) | (None, 8, 8, 128) | 73856 |
+| l5_mp (MaxPooling2D) | (None, 4, 4, 128) | 0 |
+| flat (Flatten) | (None, 2048) | 0 |
+| l6 (Dense) | (None, 32) | 65568 |
+| l7 (Dense) | (None, 16) | 528 |
+| dense (Dense) | (None, 1) | 17 |
+
+<img src="assets/ex5/plot_model.png" width="400"/>
+
+The architecture follows a progressive reduction of spatial dimensions (128->64->32->16->8->4) while increasing the number of filters (8->16->32->64->128), allowing the network to learn increasingly abstract features. The Flatten layer converts the final 4X4X128 volume into a 2048-element vector, which is then compressed through the Dense layers (32->16->1) down to a single binary output.
+
+---
+
+## 5.3 Training Process
+
+The model was trained using the following configuration:
+
+| Parameter | Value |
+|-----------|-------|
+| Optimizer | Adam |
+| Learning rate | 0.001 |
+| Loss function | Binary Crossentropy |
+| Epochs | 5 |
+| Batch size | 64 |
+| Class weights | Yes (1.9448 / 0.6730) |
+
+**Binary Crossentropy loss function:**
+
+$$L = -\frac{1}{N} \sum_{i=1}^{N} \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i) \right]$$
+
+Where $y_i$ is the true label (0 or 1) and $\hat{y}_i$ is the predicted probability.
+
+### Loss curve
+
+<img src="assets/ex5/model_loss.PNG" width="400"/>
+
+The training loss decreases steadily and converges near 0.05 by epoch 4. The validation loss however shows high variability, it decreases at epoch 2 but spikes back up at epoch 3 before dropping again at epoch 4. This instability is directly caused by the very small validation set (only 16 images), where a single misclassified image has a large impact on the computed loss.
+
+### Accuracy curve
+
+<img src="assets/ex5/model_accuracy.PNG" width="400"/>
+
+The training accuracy improves consistently, reaching ~97% by epoch 4. The validation accuracy also shows high variability for the same reason (only 16 validation samples), oscillating between 69% and 94% across epochs. This makes it difficult to use the validation set as a reliable indicator of generalization.
+
+---
+
+## 5.4 Validation Results
+
+### Confusion Matrix
+
+<img src="assets/ex5/confusionMatrix1.PNG" width="400"/>
+
+| Metric | Value |
+|--------|-------|
+| Accuracy | 87.5% |
+| F1-score | 88.89% |
+
+Out of 16 validation images, the model correctly classified 6 Normal and 8 Pneumonia cases. It misclassified 2 Normal cases as Pneumonia (false positives) and 0 Pneumonia cases as Normal (false negatives).
+
+The absence of false negatives is encouraging from a medical perspective, missing a pneumonia case (false negative) is more dangerous than a false positive, as it could result in an untreated patient.
+
+---
+
+## 5.5 Test Results
+
+### Confusion Matrix
+
+<img src="assets/ex5/confusionMatrix2.PNG" width="400"/>
+
+| Metric | Value |
+|--------|-------|
+| Accuracy | 77.08% |
+| F1-score | 84.44% |
+
+On the test set of 624 images, the model correctly classified 93 Normal and 388 Pneumonia cases. However it misclassified 141 Normal cases as Pneumonia (false positives) and only 2 Pneumonia cases as Normal (false negatives).
+
+---
+
+## 5.6 Discussion
+
+The model shows a clear bias toward predicting Pneumonia, which is expected given the class imbalance in the training set (more pneumonia samples than normal). Despite the class weights applied during training, the model still struggles to correctly identify Normal cases, as shown by the 141 false positives on the test set.
+
+The gap between validation accuracy (87.5%) and test accuracy (77.08%) suggests that the model does not generalize perfectly to unseen data. This could be improved by increasing the number of epochs, adding dropout layers to reduce overfitting, or using data augmentation to artificially balance the dataset.
+
+The F1-score (84.44% on test) is higher than the accuracy (77.08%), which confirms that the model handles the class imbalance reasonably well in terms of precision/recall balance. In a medical context, the very low false negative rate (only 2 missed pneumonia cases out of 390) is the most important result, as failing to detect pneumonia is far more critical than a false alarm.
+
