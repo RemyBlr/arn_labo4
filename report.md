@@ -179,3 +179,327 @@ The following confisions correspond to digits sharing similar stroke orientation
 ![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_2.png)
 
 ![confusion matrix for the 3rd configuration ex3](assets/ex3/confusion_matrix_3.png)
+
+# 4. Convolutional Neural Network : Digit Recognition (MNIST)
+
+The goal of this experiment is to train a convolutional neural network using the MNIST dataset. We are going to try to identify a good neural network configuration that automatically extracts and learns the optimal features necessary for accurate digit recognition. We will modify and evaluate various configurations, comparing their performance to improve the initial model. The best performing model will then be analyzed.
+
+Initial Situation :
+
+<img src="assets/ex4/InitSummary.PNG" width="400"/>
+<img src="assets/ex4/InitAccuracy.PNG" width="400"/>
+
+---
+
+## 4.1 Modifying training duration: increasing epochs
+
+One of the first observations from the given training results is the low number of training epochs. Originally set to 3, this low count results in undertraining. To fix this, we increased the number of epochs to 16. This gives the model more iterations over the training data, giving it a chance to learn and refine its weights and biases.
+
+**Impact on Performance:**
+
+| Metric | Initial Model (3 epochs) | Improved Model (16 epochs) |
+|--------|--------------------------|---------------------------|
+| Test Score | - | 1.0814 |
+| Test Accuracy | - | 61.49% |
+
+The graph below shows that both curves are still descending at epoch 16 without stabilizing, which confirms that the base model (only 2 filters and 2 Dense neurons) is too limited to converge properly, even with more epochs.
+
+<img src="assets/ex4/16_epochs.PNG" width="400"/>
+
+---
+
+## 4.2 Increasing the number of neurons in the fully connected (Dense) layer
+
+A good way to increase the model's capacity to learn complex patterns is to increase the number of neurons in the fully connected layer. Initially, our model used only 2 neurons in this layer, which was a limiting factor for classification. We increased this to 128 neurons, a classic power-of-two value.
+
+**Changes made:**
+
+```python
+l4 = Dense(128, activation='relu', name='l4')(flat)
+```
+
+**Model summary:**
+
+| Layer | Output Shape | Param # |
+|-------|-------------|---------|
+| l0 (InputLayer) | (None, 28, 28, 1) | 0 |
+| l1 (Conv2D) | (None, 28, 28, 2) | 10 |
+| l1_mp (MaxPooling2D) | (None, 14, 14, 2) | 0 |
+| l2 (Conv2D) | (None, 14, 14, 2) | 18 |
+| l2_mp (MaxPooling2D) | (None, 7, 7, 2) | 0 |
+| l3 (Conv2D) | (None, 7, 7, 2) | 18 |
+| l3_mp (MaxPooling2D) | (None, 3, 3, 2) | 0 |
+| flat (Flatten) | (None, 18) | 0 |
+| l4 (Dense) | (None, 128) | 2432 |
+| l5 (Dense) | (None, 10) | 1290 |
+
+**Results:**
+
+| Metric | Value |
+|--------|-------|
+| Test score | 0.3176 |
+| Test accuracy | 89.61% |
+
+The graph shows a stable convergence with no overfitting, both curves decrease together smoothly. However the accuracy is still limited by the small number of convolutional filters (only 2 per layer).
+
+<img src="assets/ex4/128_neuron_graph.PNG" width="400"/>
+
+---
+
+## 4.3 Increasing convolutional filters: 4, 8, 16
+
+Instead of removing the third convolutional layer, we kept all three layers but significantly increased the number of filters: 4 for l1, 8 for l2, and 16 for l3. This allows the network to extract a richer and more diverse set of features at each level of the hierarchy while still preserving the 3-level depth.
+
+**Changes made:**
+
+```python
+l0 = Input(shape=(height, width, 1), name='l0')
+
+l1 = Conv2D(4, (2, 2), padding='same', activation='relu', name='l1')(l0)
+l1_mp = MaxPooling2D(pool_size=(2, 2), name='l1_mp')(l1)
+
+l2 = Conv2D(8, (2, 2), padding='same', activation='relu', name='l2')(l1_mp)
+l2_mp = MaxPooling2D(pool_size=(2, 2), name='l2_mp')(l2)
+
+l3 = Conv2D(16, (2, 2), padding='same', activation='relu', name='l3')(l2_mp)
+l3_mp = MaxPooling2D(pool_size=(2, 2), name='l3_mp')(l3)
+
+flat = Flatten(name='flat')(l3_mp)
+
+l4 = Dense(128, activation='relu', name='l4')(flat)
+l5 = Dense(n_classes, activation='softmax', name='l5')(l4)
+```
+
+**Model summary:**
+
+| Layer | Output Shape | Param # |
+|-------|-------------|---------|
+| l0 (InputLayer) | (None, 28, 28, 1) | 0 |
+| l1 (Conv2D) | (None, 28, 28, 4) | 20 |
+| l1_mp (MaxPooling2D) | (None, 14, 14, 4) | 0 |
+| l2 (Conv2D) | (None, 14, 14, 8) | 136 |
+| l2_mp (MaxPooling2D) | (None, 7, 7, 8) | 0 |
+| l3 (Conv2D) | (None, 7, 7, 16) | 528 |
+| l3_mp (MaxPooling2D) | (None, 3, 3, 16) | 0 |
+| flat (Flatten) | (None, 144) | 0 |
+| l4 (Dense) | (None, 128) | 18560 |
+| l5 (Dense) | (None, 10) | 1290 |
+| **Total** | | **20,534** |
+
+**Results:**
+
+| Metric | Value |
+|--------|-------|
+| Test score | 0.0453 |
+| Test accuracy | 98.66% |
+
+**Impact on Performance:** This configuration produced a dramatic improvement, jumping from 89.61% to 98.66% accuracy. The loss curve shows both curves converging closely together with no sign of overfitting, achieving this with only 20,534 total parameters.
+
+<img src="assets/ex4/increase_convo_layer_graph.PNG" width="400"/>
+
+---
+
+## 4.4 Larger kernel size: 5X5 filters
+
+To explore the effect of kernel size, we replaced the 2X2 kernels with 5X5 kernels and reduced to two convolutional layers (8 and 16 filters). A larger kernel captures broader spatial features at each layer, which can help recognize the global shape of digits more effectively.
+
+**Changes made:**
+
+```python
+l0 = Input(shape=(height, width, 1), name='l0')
+
+l1 = Conv2D(8, (5, 5), padding='same', activation='relu', name='l1')(l0)
+l1_mp = MaxPooling2D(pool_size=(2, 2), name='l1_mp')(l1)
+
+l2 = Conv2D(16, (5, 5), padding='same', activation='relu', name='l2')(l1_mp)
+l2_mp = MaxPooling2D(pool_size=(2, 2), name='l2_mp')(l2)
+
+flat = Flatten(name='flat')(l2_mp)
+
+l4 = Dense(128, activation='relu', name='l4')(flat)
+l5 = Dense(n_classes, activation='softmax', name='l5')(l4)
+```
+
+**Model summary:**
+
+| Layer | Output Shape | Param # |
+|-------|-------------|---------|
+| l0 (InputLayer) | (None, 28, 28, 1) | 0 |
+| l1 (Conv2D) | (None, 28, 28, 8) | 208 |
+| l1_mp (MaxPooling2D) | (None, 14, 14, 8) | 0 |
+| l2 (Conv2D) | (None, 14, 14, 16) | 3216 |
+| l2_mp (MaxPooling2D) | (None, 7, 7, 16) | 0 |
+| flat (Flatten) | (None, 784) | 0 |
+| l4 (Dense) | (None, 128) | 100480 |
+| l5 (Dense) | (None, 10) | 1290 |
+| **Total** | | **105,194** |
+
+**Results:**
+
+| Metric | Value |
+|--------|-------|
+| Test score | 0.0399 |
+| Test accuracy | 99.04% |
+
+**Impact on Performance:** The 5×5 kernel further improved accuracy to 99.04%. However, the total parameter count jumped to 105,194, mostly due to the larger flattened output feeding into the Dense layer (100,480 parameters in l4 alone). The loss curve shows slight overfitting: the training loss continues decreasing toward 0 while the testing loss stabilizes with small oscillations around 0.04.
+
+<img src="assets/ex4/kernel_5x5_graph.PNG" width="400"/>
+
+---
+
+## 4.5 Reducing overfitting with dropout regularization (final model)
+
+To mitigate the overfitting observed in the previous configuration, we introduced dropout regularization. This technique prevents overfitting by randomly disabling a subset of neurons during training, forcing the network to learn more robust features. We used a more aggressive dropout rate of 0.3 after each pooling layer and 0.5 before the final output layer.
+
+**Full architecture:**
+
+```python
+l0 = Input(shape=(height, width, 1), name='l0')
+
+l1 = Conv2D(8, (5, 5), padding='same', activation='relu', name='l1')(l0)
+l1_mp = MaxPooling2D(pool_size=(2, 2), name='l1_mp')(l1)
+l1_drop = Dropout(0.3, name='l1_drop')(l1_mp)
+
+l2 = Conv2D(16, (5, 5), padding='same', activation='relu', name='l2')(l1_drop)
+l2_mp = MaxPooling2D(pool_size=(2, 2), name='l2_mp')(l2)
+l2_drop = Dropout(0.3, name='l2_drop')(l2_mp)
+
+flat = Flatten(name='flat')(l2_drop)
+
+l4 = Dense(128, activation='relu', name='l4')(flat)
+l4_drop = Dropout(0.5, name='l4_drop')(l4)
+l5 = Dense(n_classes, activation='softmax', name='l5')(l4_drop)
+```
+
+**Model summary:**
+
+| Layer | Output Shape | Param # |
+|-------|-------------|---------|
+| l0 (InputLayer) | (None, 28, 28, 1) | 0 |
+| l1 (Conv2D) | (None, 28, 28, 8) | 208 |
+| l1_mp (MaxPooling2D) | (None, 14, 14, 8) | 0 |
+| l1_drop (Dropout) | (None, 14, 14, 8) | 0 |
+| l2 (Conv2D) | (None, 14, 14, 16) | 3216 |
+| l2_mp (MaxPooling2D) | (None, 7, 7, 16) | 0 |
+| l2_drop (Dropout) | (None, 7, 7, 16) | 0 |
+| flat (Flatten) | (None, 784) | 0 |
+| l4 (Dense) | (None, 128) | 100480 |
+| l4_drop (Dropout) | (None, 128) | 0 |
+| l5 (Dense) | (None, 10) | 1290 |
+| **Total** | | **105,194** |
+
+**Results:**
+
+| Metric | Value |
+|--------|-------|
+| Test score | 0.0283 |
+| Test accuracy | 99.12% |
+
+**Impact on Performance:** The dropout layers successfully reduced overfitting. The loss curve is much cleaner compared to config 4: the testing loss decreases steadily and stabilizes well below the training loss, without the oscillations seen before. The accuracy also slightly improved from 99.04% to 99.12%.
+
+<img src="assets/ex4/dropout_graph.PNG" width="400"/>
+
+---
+
+## 4.6 Architecture and weight calculation of the final model
+
+### Layer description
+
+**Input Layer (l0):** Receives images of size 28X28 with 1 channel (grayscale). Entry point for data, performs no computation.
+
+**Convolutional Layers:**
+- l1: 8 filters of size 5X5 with ReLU activation. Output: 28X28X8 (same padding preserves spatial dimensions).
+- l2: 16 filters of size 5X5 with ReLU activation. Output: 14X14X16.
+
+**Pooling Layers:** l1_mp and l2_mp perform max pooling with a 2X2 window, halving the dimensions: l1_mp -> 14X14X8, l2_mp -> 7X7X16.
+
+**Dropout Layers:** l1_drop, l2_drop (rate 0.3) and l4_drop (rate 0.5) prevent overfitting. These layers add no weights.
+
+**Dense Layers:**
+- l4: 128 neurons with ReLU activation.
+- l5: 10 neurons with Softmax activation (one output per digit class).
+
+### Weight calculation
+
+**Convolutional layers:**
+
+$$l1 : (5 \times 5 \times 1) \times 8 + 8 = 208 \text{ parameters}$$
+
+$$l2 : (5 \times 5 \times 8) \times 16 + 16 = 3216 \text{ parameters}$$
+
+**Dense layers:**
+
+$$l4 : 784 \times 128 + 128 = 100480 \text{ parameters}$$
+
+$$l5 : 128 \times 10 + 10 = 1290 \text{ parameters}$$
+
+**Total: 208 + 3216 + 100480 + 1290 = 105,194 parameters**
+
+---
+
+## 4.7 Performance discussion
+
+The tuning process showed a clear and progressive improvement in accuracy and a decrease in loss at each step.
+
+### Confusion matrix
+
+<img src="assets/ex4/confusion_matrix.PNG" width="600"/>
+
+The confusion matrix confirms the strong performance of the final model. The diagonal is highly dominant, meaning most digits are correctly classified. The most frequently confused digits are **5** (6 samples predicted as 3) and **8** (4 samples predicted as 0), which is expected given their visual similarity.
+
+### Accuracy per digit
+
+From the confusion matrix, we can extract the per-digit accuracy:
+
+| Digit | Correct | Total | Accuracy |
+|-------|---------|-------|----------|
+| 0 | 977 | 980 | 99.69% |
+| 1 | 1133 | 1135 | 99.82% |
+| 2 | 1024 | 1032 | 99.22% |
+| 3 | 1005 | 1010 | 99.50% |
+| 4 | 978 | 982 | 99.59% |
+| 5 | 879 | 892 | 98.54% |
+| 6 | 948 | 958 | 98.96% |
+| 7 | 1018 | 1028 | 99.03% |
+| 8 | 957 | 974 | 98.25% |
+| 9 | 993 | 1009 | 98.41% |
+
+Digit **1** achieves the highest accuracy (99.82%), likely due to its simple and distinctive vertical stroke. Digits **8** and **5** are the most challenging, as they share visual features with several other digits.
+
+---
+
+## 4.8 Comparison of all configurations
+
+| Config | Description | Test Score | Test Accuracy |
+|--------|-------------|------------|---------------|
+| 1 | Base model + 16 epochs | 1.0814 | 61.49% |
+| 2 | Dense 128 neurons | 0.3176 | 89.61% |
+| 3 | Conv filters 4/8/16 | 0.0453 | 98.66% |
+| 4 | Kernel 5×5, filters 8/16 | 0.0399 | 99.04% |
+| **5** | **+ Dropout 0.3/0.5** | **0.0283** | **99.12%** |
+
+The results clearly show that increasing the number of convolutional filters (config 3) was the most impactful single change, producing a jump from 89.61% to 98.66%. Moving to larger 5X5 kernels (config 4) further improved accuracy at the cost of a significantly higher parameter count. Finally, adding dropout (config 5) both improved accuracy slightly and produced a cleaner, more stable training curve by reducing overfitting.
+
+---
+
+## 4.9 Do CNNs have more weights than shallow networks?
+
+The relationship between the depth of a CNN and the number of weights it contains is not strictly linear. Deeper networks have more layers, but the size of those layers and the kernel size also affect the total parameter count. Furthermore, CNNs include layers that do not increase the parameter count at all, such as pooling and dropout layers.
+
+**Comparative example:**
+
+**Shallow Neural Network (MLP):**
+- Input: 784 (flattened 28X28)
+- Dense layer 1: 128 neurons -> 784 * 128 + 128 = 100,480 parameters
+- Output layer: 10 neurons -> 128 * 10 + 10 = 1,290 parameters
+- **Total: 101,770 parameters**
+
+**Deeper CNN (our config 3):**
+- Conv layer 1: 4 filters 2X2 -> (2 * 2 * 1 * 4) + 4 = 20 parameters
+- Conv layer 2: 8 filters 2X2 -> (2 * 2 * 4 * 8) + 8 = 136 parameters
+- Conv layer 3: 16 filters 2X2 -> (2 * 2 * 8 * 16) + 16 = 528 parameters
+- Dense layer: 144 * 128 + 128 = 18,560 parameters
+- Output layer: 128 * 10 + 10 = 1,290 parameters
+- **Total: 20,534 parameters**
+
+Despite having more layers, config 3 (CNN) has **5X fewer weights** than the shallow MLP, while achieving 98.66% accuracy vs what a comparable MLP would achieve. This is because dense layers connect every input to every neuron, generating a very large number of parameters, whereas convolutional layers only connect each filter to a local region of the input image, drastically reducing the parameter count despite the added depth.
