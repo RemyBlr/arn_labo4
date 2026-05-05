@@ -480,6 +480,18 @@ Digit **1** achieves the highest accuracy (99.82%), likely due to its simple and
 
 The results clearly show that increasing the number of convolutional filters (config 3) was the most impactful single change, producing a jump from 89.61% to 98.66%. Moving to larger 5X5 kernels (config 4) further improved accuracy at the cost of a significantly higher parameter count. Finally, adding dropout (config 5) both improved accuracy slightly and produced a cleaner, more stable training curve by reducing overfitting.
 
+### Comparison with previous sections
+
+| Model | Best Accuracy | Parameters |
+|-------|--------------|------------|
+| MLP from raw data (Section 2) | 98.36% | 407,050 |
+| MLP from HOG features (Section 3) | 98.41% | 231,434 |
+| **CNN (Section 4)** | **99.12%** | **105,194** |
+
+The CNN outperforms both shallow approaches while using significantly fewer parameters. The MLP from raw data required 407,050 parameters to reach 98.36%, whereas our CNN achieves 99.12% with only 105,194 parameters; nearly 4X fewer. This highlights the key advantage of convolutional layers: by sharing weights across the image through local filters, they extract spatial features far more efficiently than fully connected layers.
+
+The HOG-based MLP (98.41%) was already more parameter-efficient than the raw MLP (231,434 vs 407,050) thanks to the feature reduction from 784 to 441 inputs, and it performed slightly better. However the CNN still surpasses it both in accuracy and efficiency, because it learns its own optimal features directly from the raw pixel data through training, rather than relying on a hand-crafted feature extractor like HOG.
+
 ---
 
 ## 4.9 Do CNNs have more weights than shallow networks?
